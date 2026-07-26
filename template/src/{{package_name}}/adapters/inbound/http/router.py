@@ -1,3 +1,6 @@
+from collections.abc import Iterator
+from typing import cast
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
@@ -9,10 +12,10 @@ router = APIRouter()
 
 
 def get_container(request: Request) -> Container:
-    return request.app.state.container
+    return cast(Container, request.app.state.container)
 
 
-def get_db_session(container: Container = Depends(get_container)) -> Session:
+def get_db_session(container: Container = Depends(get_container)) -> Iterator[Session]:
     yield from container.new_session()
 
 

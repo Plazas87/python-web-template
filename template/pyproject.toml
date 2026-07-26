@@ -40,6 +40,8 @@ package = true
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
 [tool.mypy]
@@ -47,6 +49,7 @@ strict = true
 
 [tool.importlinter]
 root_packages = ["{{ package_name }}"]
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Domain must not import adapters or external libraries"
@@ -65,3 +68,12 @@ name = "Inbound adapters must not import outbound adapters"
 type = "forbidden"
 source_modules = ["{{ package_name }}.adapters.inbound"]
 forbidden_modules = ["{{ package_name }}.adapters.outbound"]
+ignore_imports = [
+    # container.py is the composition root: it is expected to reach into outbound
+    # adapters, and inbound adapters are expected to depend on it for wiring.
+    "{{ package_name }}.container -> {{ package_name }}.adapters.outbound.**",
+    # trace_id_var is shared cross-cutting infrastructure (set by inbound tracing
+    # middleware, read by the logging formatter) — it doesn't cleanly belong to
+    # either side of the boundary, so this one import is a documented exception.
+    "{{ package_name }}.adapters.inbound.http.middleware.tracing -> {{ package_name }}.adapters.outbound.observability.logging",
+]
