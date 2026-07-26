@@ -1,0 +1,41 @@
+name: Test template
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  generate-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Generate sample app from template
+        run: |
+          uv tool run copier copy . /tmp/sample-app --defaults --vcs-ref=HEAD \
+            --data project_name="Sample App" \
+            --data author_name="CI" \
+            --data author_email="ci@example.com"
+
+      - name: Install sample app dependencies
+        working-directory: /tmp/sample-app
+        run: uv sync
+
+      - name: Lint
+        working-directory: /tmp/sample-app
+        run: make lint
+
+      - name: Typecheck
+        working-directory: /tmp/sample-app
+        run: make typecheck
+
+      - name: Architecture check
+        working-directory: /tmp/sample-app
+        run: make architecture
+
+      - name: Unit tests
+        working-directory: /tmp/sample-app
+        run: make test

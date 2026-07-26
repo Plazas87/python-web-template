@@ -1,0 +1,67 @@
+[project]
+name = "{{ project_slug }}"
+version = "0.1.0"
+description = "{{ description }}"
+authors = [{ name = "{{ author_name }}", email = "{{ author_email }}" }]
+requires-python = ">={{ python_version }}"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic[email]>=2.6",
+    "pydantic-settings>=2.2",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    "alembic>=1.13",
+    "prometheus-client>=0.20",
+    "sentry-sdk>=2.0",
+    "opentelemetry-sdk>=1.24",
+    "opentelemetry-instrumentation-fastapi>=0.45b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.24",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+    "pip-audit>=2.7",
+    "import-linter>=2.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+strict = true
+
+[tool.importlinter]
+root_packages = ["{{ package_name }}"]
+
+[[tool.importlinter.contracts]]
+name = "Domain must not import adapters or external libraries"
+type = "forbidden"
+source_modules = ["{{ package_name }}.domain"]
+forbidden_modules = ["{{ package_name }}.adapters", "fastapi", "sqlalchemy", "httpx"]
+
+[[tool.importlinter.contracts]]
+name = "Application must not import adapters"
+type = "forbidden"
+source_modules = ["{{ package_name }}.application"]
+forbidden_modules = ["{{ package_name }}.adapters"]
+
+[[tool.importlinter.contracts]]
+name = "Inbound adapters must not import outbound adapters"
+type = "forbidden"
+source_modules = ["{{ package_name }}.adapters.inbound"]
+forbidden_modules = ["{{ package_name }}.adapters.outbound"]

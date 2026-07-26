@@ -1,0 +1,19 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: make install
+      - run: make check-migrations
+      - run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        run: railway up --service {{ project_slug }} --environment production
+        env:
+          RAILWAY_TOKEN: {% raw %}${{ secrets.RAILWAY_TOKEN }}{% endraw %}

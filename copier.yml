@@ -1,0 +1,42 @@
+_subdirectory: template
+_templates_suffix: ""
+_envops:
+  trim_blocks: true
+  lstrip_blocks: true
+  keep_trailing_newline: true
+
+project_name:
+  type: str
+  help: "Human-readable project name (e.g. 'Acme Billing API')"
+
+project_slug:
+  type: str
+  help: "URL/CLI-safe slug — used for the Docker image name, Railway service name, and pyproject [project].name"
+  default: "{{ project_name | lower | replace(' ', '-') }}"
+
+package_name:
+  type: str
+  help: "Python package name — must be a valid Python identifier (e.g. 'acme_billing')"
+  default: "{{ project_slug | replace('-', '_') }}"
+  validator: >-
+    {% if not package_name.isidentifier() %}
+    package_name must be a valid Python identifier (letters, digits, underscores; cannot start with a digit)
+    {% endif %}
+
+description:
+  type: str
+  help: "One-line project description"
+  default: ""
+
+author_name:
+  type: str
+  help: "Author or team name"
+
+author_email:
+  type: str
+  help: "Author or team email"
+
+python_version:
+  type: str
+  help: "Minimum Python version"
+  default: "3.12"
