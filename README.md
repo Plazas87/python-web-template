@@ -20,7 +20,7 @@ answer a few prompts, and you get a working app with:
 Generate a new app:
 
 ```bash
-uvx copier copy gh:acpr87/python-web-template my-new-app
+uvx copier copy gh:Plazas87/python-web-template my-new-app
 ```
 
 You'll be prompted for:
