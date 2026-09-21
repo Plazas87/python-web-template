@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from typing import cast
 
 from fastapi import APIRouter, Depends, Request
@@ -15,8 +15,9 @@ def get_container(request: Request) -> Container:
     return cast(Container, request.app.state.container)
 
 
-def get_db_session(container: Container = Depends(get_container)) -> Iterator[Session]:
-    yield from container.new_session()
+async def get_db_session(container: Container = Depends(get_container)) -> AsyncIterator[Session]:
+    async for session in container.new_session():
+        yield session
 
 
 def get_create_user_use_case(

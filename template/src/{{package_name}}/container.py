@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from sqlalchemy import create_engine
@@ -25,7 +25,10 @@ class Container:
             email_service=ConsoleEmailService(),
         )
 
-    def new_session(self) -> Iterator[Session]:
+    async def new_session(self) -> AsyncIterator[Session]:
+        # Async generator, not sync: FastAPI commits this after the response is
+        # already sent either way, but a sync generator's commit runs in a
+        # threadpool, widening the window for a client's next request to race it.
         session = self.session_factory()
         try:
             yield session
