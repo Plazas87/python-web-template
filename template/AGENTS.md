@@ -53,6 +53,9 @@ ABC; the application layer imports only the ABC.
 - A use case importing a concrete adapter class instead of a port ABC.
 - A use case class with more than one public method — split it into two use cases.
 - Wiring concrete adapters anywhere other than `container.py`.
+- A `yield`-style FastAPI dependency (`Depends(...)` with a `yield`) written as a sync
+  generator — always `async def` with `async for`/`yield` instead, even if the body is
+  synchronous. See `container.py`'s `new_session` for why and the shape to copy.
 
 ## Composition root
 
