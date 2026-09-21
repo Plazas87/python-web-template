@@ -1,11 +1,15 @@
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from {{ package_name }}.adapters.outbound.external.console_email import ConsoleEmailService
+from {{ package_name }}.adapters.outbound.external.local_disk_file_storage import (
+    LocalDiskFileStorageService,
+)
 from {{ package_name }}.adapters.outbound.persistence.repositories import (
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
@@ -33,6 +37,7 @@ class Container:
     password_hasher: Argon2PasswordHasher
     token_service: JwtTokenService
     policy: RoleBasedPolicy
+    file_storage: LocalDiskFileStorageService
 
     @classmethod
     def build(cls, settings: Settings) -> "Container":
@@ -46,6 +51,7 @@ class Container:
                 expires_minutes=settings.access_token_expires_minutes,
             ),
             policy=RoleBasedPolicy(),
+            file_storage=LocalDiskFileStorageService(Path(settings.file_storage_dir)),
         )
 
     async def new_session(self) -> AsyncIterator[Session]:

@@ -10,3 +10,4 @@ dist/
 build/
 .DS_Store
 .copier-answers.yml.orig
+/var/files/

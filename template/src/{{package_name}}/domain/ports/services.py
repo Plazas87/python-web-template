@@ -29,3 +29,14 @@ class TokenService(ABC):
     def decode_access_token(self, token: str) -> UUID:
         """Raise InvalidTokenError if the token is missing, malformed, or expired."""
         ...
+
+
+class FileStorageService(ABC):
+    @abstractmethod
+    def save(self, key: str, content: bytes) -> None: ...
+
+    @abstractmethod
+    def get_url(self, key: str) -> str: ...
+
+    @abstractmethod
+    def delete(self, key: str) -> None: ...
