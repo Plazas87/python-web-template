@@ -53,7 +53,26 @@ def test_admin_can_list_users() -> None:
         response = client.get("/users", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 200
-    assert any(user["email"] == email for user in response.json())
+    body = response.json()
+    assert any(user["email"] == email for user in body["items"])
+    assert body["page"] == 1
+    assert body["total"] >= 1
+
+
+def test_page_size_limits_returned_items() -> None:
+    email = f"{uuid.uuid4()}@example.com"
+    password = "s3cret123"
+
+    with TestClient(app) as client:
+        token = _register_and_login(client, email, password)
+        _promote_to_admin(email)
+        response = client.get(
+            "/users", params={"page_size": 1}, headers={"Authorization": f"Bearer {token}"}
+        )
+
+    body = response.json()
+    assert len(body["items"]) == 1
+    assert body["page_size"] == 1
 
 
 def test_non_admin_cannot_list_users() -> None:

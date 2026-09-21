@@ -3,6 +3,17 @@ from pydantic import BaseModel, EmailStr, Field
 from {{ package_name }}.domain.model.user import User
 
 
+class PageResponse[ItemT](BaseModel):
+    # Reusable envelope for any paginated list endpoint — see GET /users for the
+    # pattern: map domain.model.pagination.Page's items to a response schema,
+    # carry page/page_size/total/total_pages through as-is.
+    items: list[ItemT]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
 class CreateUserRequest(BaseModel):
     email: EmailStr
     name: str
