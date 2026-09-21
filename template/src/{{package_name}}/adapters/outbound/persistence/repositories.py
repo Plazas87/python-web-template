@@ -26,6 +26,10 @@ class SqlAlchemyUserRepository(UserRepository):
         model = self._session.scalar(select(UserModel).where(UserModel.email == email))
         return model.to_domain() if model else None
 
+    def list_all(self) -> list[User]:
+        models = self._session.scalars(select(UserModel))
+        return [model.to_domain() for model in models]
+
 
 class SqlAlchemyRoleRepository(RoleRepository):
     def __init__(self, session: Session):

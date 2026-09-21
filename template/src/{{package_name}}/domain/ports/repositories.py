@@ -15,6 +15,9 @@ class UserRepository(ABC):
     @abstractmethod
     def find_by_email(self, email: str) -> User | None: ...
 
+    @abstractmethod
+    def list_all(self) -> list[User]: ...
+
 
 class RoleRepository(ABC):
     @abstractmethod
