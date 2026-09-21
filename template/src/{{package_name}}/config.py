@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     secret_key: str = "change-me"
+    access_token_expires_minutes: int = 60
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/{{ package_name }}_dev"
     sentry_dsn: str = ""
     otel_exporter_otlp_endpoint: str = ""
