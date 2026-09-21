@@ -40,6 +40,7 @@ ABC; the application layer imports only the ABC.
 - **Something that runs outside the request/response cycle** (on a schedule, or some time after X) → a job function in `adapters/inbound/scheduler/jobs.py`, registered with the `AsyncIOScheduler` in `main.py`'s `lifespan`. See "Background jobs" below.
 - **A new domain event, or something that should react to one** → define the event in `domain/events.py` (past tense, frozen dataclass), `dispatch()` it from the use case via the `EventDispatcher` port right after the state change it describes, and add a subscriber in `container.py`'s `_event_dispatcher`. See "Domain events" below.
 - **A new "list X" endpoint** → `domain/model/pagination.py`'s `PageRequest`/`Page` on the repository port (a `list_page(page_request) -> Page[T]` method), not a bespoke offset/limit convention per entity. See `UserRepository.list_page` and `GET /users` for the pattern.
+- **A new low-complexity entity** (no state machine, no validation beyond "field is required," nothing that would ever need independent persistence) → a candidate for a generic, parameterized CRUD port/adapter instead of full per-entity ceremony. See "Generic-CRUD escape hatch" below before reaching for a bespoke `<Entity>Repository`.
 
 ## Authentication vs. authorization
 
@@ -78,6 +79,24 @@ subscribed handlers synchronously, in-process. `AuditLogConsumer`
 sink that records event name, payload, and timestamp for *any* dataclass event, giving every
 generated project a working audit trail for free. Subscriptions are wired in `container.py`'s
 `_event_dispatcher`, once, per request.
+
+## Generic-CRUD escape hatch
+
+The default in this document — domain model + port + adapter + one use case per verb, per
+entity — is the right ceremony for entities with real business rules. It's needless
+boilerplate for simple lookup/reference tables (a list of tags, a country list, an audit
+category) that are functionally just insert/update/soft-delete/list, with nothing to
+protect.
+
+Ask this before writing the full ceremony for a new entity: does it have a state machine, a
+validation rule beyond "field is required," or a reason someone would ever swap its
+persistence independently? If the answer to all three is no, it's a candidate for a generic
+path instead — one parameterized `CrudRepository[ModelT]` port + SQLAlchemy adapter, reused
+across every such entity, rather than a bespoke `<Entity>Repository` /
+`SqlAlchemy<Entity>Repository` pair each time. This template doesn't ship one by default
+(nothing in it qualifies yet), but treat a generic CRUD port as the sanctioned way to
+deviate for entities like this — not a violation of the architecture, and not a reason to
+silently skip the ports-and-adapters pattern altogether either.
 
 ## Naming conventions
 
