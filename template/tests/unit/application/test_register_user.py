@@ -2,6 +2,9 @@ from uuid import UUID
 
 import pytest
 
+from {{ package_name }}.adapters.outbound.events.in_process_event_dispatcher import (
+    InProcessEventDispatcher,
+)
 from {{ package_name }}.application.use_cases.register_user import RegisterUserUseCase
 from {{ package_name }}.domain.model.role import Role
 from {{ package_name }}.domain.model.user import DuplicateEmailError, User
@@ -60,6 +63,7 @@ def test_register_user_hashes_password_and_assigns_default_role() -> None:
         role_repo=FakeRoleRepository(),
         hasher=FakePasswordHasher(),
         email_svc=FakeEmailService(),
+        dispatcher=InProcessEventDispatcher(),
     )
 
     user = use_case.execute(email="jane@example.com", name="Jane", password="s3cret123")
@@ -76,6 +80,7 @@ def test_register_user_rejects_duplicate_email() -> None:
         role_repo=FakeRoleRepository(),
         hasher=FakePasswordHasher(),
         email_svc=FakeEmailService(),
+        dispatcher=InProcessEventDispatcher(),
     )
     use_case.execute(email="jane@example.com", name="Jane", password="s3cret123")
 

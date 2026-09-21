@@ -1,6 +1,10 @@
 from uuid import UUID
 
+from {{ package_name }}.adapters.outbound.events.in_process_event_dispatcher import (
+    InProcessEventDispatcher,
+)
 from {{ package_name }}.application.use_cases.create_user import CreateUserUseCase
+from {{ package_name }}.domain.events import UserCreated
 from {{ package_name }}.domain.model.user import User
 from {{ package_name }}.domain.ports.repositories import UserRepository
 from {{ package_name }}.domain.ports.services import EmailService
@@ -34,9 +38,15 @@ class FakeEmailService(EmailService):
 def test_create_user_saves_and_sends_welcome_email() -> None:
     repo = FakeUserRepository()
     email = FakeEmailService()
-    use_case = CreateUserUseCase(repo=repo, email_svc=email)
+    dispatcher = InProcessEventDispatcher()
+    published: list[UserCreated] = []
+    dispatcher.subscribe(UserCreated, published.append)
+    use_case = CreateUserUseCase(repo=repo, email_svc=email, dispatcher=dispatcher)
 
     user = use_case.execute(email="jane@example.com", name="Jane")
 
     assert repo.saved == [user]
     assert email.sent_to == [user]
+    assert len(published) == 1
+    assert published[0].user_id == user.id
+    assert published[0].email == user.email

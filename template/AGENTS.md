@@ -38,6 +38,7 @@ ABC; the application layer imports only the ABC.
 - **New third-party integration** (email, payments, etc.) → define the port in `domain/ports/services.py` if one doesn't exist, implement it in `adapters/outbound/external/`, wire it in `container.py`.
 - **New authorization rule** ("can this actor do this?") → a check inside the relevant use case via the `Policy` port (`domain/ports/policy.py`), never only as a FastAPI dependency. See "Authentication vs. authorization" below.
 - **Something that runs outside the request/response cycle** (on a schedule, or some time after X) → a job function in `adapters/inbound/scheduler/jobs.py`, registered with the `AsyncIOScheduler` in `main.py`'s `lifespan`. See "Background jobs" below.
+- **A new domain event, or something that should react to one** → define the event in `domain/events.py` (past tense, frozen dataclass), `dispatch()` it from the use case via the `EventDispatcher` port right after the state change it describes, and add a subscriber in `container.py`'s `_event_dispatcher`. See "Domain events" below.
 
 ## Authentication vs. authorization
 
@@ -65,6 +66,17 @@ revenue) — apply the same reasoning here instead of reaching for a queue on da
   way `scripts/seed.py` does.
 - **Graduate to this when the pain shows up**: Celery or RQ + Redis, once there's real
   queueing/retry/distributed-worker need.
+
+## Domain events
+
+`domain/events.py` declares events (e.g. `UserCreated`); a use case dispatches one via the
+`EventDispatcher` port (`domain/ports/events.py`) right after the state change it describes,
+in the *same* session/transaction — see `RegisterUserUseCase` for the pattern. `InProcessEventDispatcher` (`adapters/outbound/events/`) is the default: it calls
+subscribed handlers synchronously, in-process. `AuditLogConsumer`
+(`adapters/outbound/persistence/audit_log_consumer.py`) is the first subscriber — a generic
+sink that records event name, payload, and timestamp for *any* dataclass event, giving every
+generated project a working audit trail for free. Subscriptions are wired in `container.py`'s
+`_event_dispatcher`, once, per request.
 
 ## Naming conventions
 
