@@ -16,6 +16,9 @@ class FakeUserRepository(UserRepository):
     def find_by_id(self, id: UUID) -> User | None:
         return next((u for u in self.saved if u.id == id), None)
 
+    def find_by_email(self, email: str) -> User | None:
+        return next((u for u in self.saved if u.email == email), None)
+
 
 class FakeEmailService(EmailService):
     def __init__(self) -> None:

@@ -1,23 +1,12 @@
-from collections.abc import AsyncIterator
-from typing import cast
-
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from {{ package_name }}.adapters.inbound.http.dependencies import get_container, get_db_session
 from {{ package_name }}.adapters.inbound.http.schemas import CreateUserRequest, UserResponse
 from {{ package_name }}.application.use_cases.create_user import CreateUserUseCase
 from {{ package_name }}.container import Container
 
 router = APIRouter()
-
-
-def get_container(request: Request) -> Container:
-    return cast(Container, request.app.state.container)
-
-
-async def get_db_session(container: Container = Depends(get_container)) -> AsyncIterator[Session]:
-    async for session in container.new_session():
-        yield session
 
 
 def get_create_user_use_case(

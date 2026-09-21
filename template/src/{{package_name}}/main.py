@@ -5,7 +5,7 @@ import sentry_sdk
 from fastapi import FastAPI
 from prometheus_client import make_asgi_app
 
-from {{ package_name }}.adapters.inbound.http import health, router
+from {{ package_name }}.adapters.inbound.http import auth_router, health, router
 from {{ package_name }}.adapters.inbound.http.middleware.logging import LoggingMiddleware
 from {{ package_name }}.adapters.inbound.http.middleware.metrics import MetricsMiddleware
 from {{ package_name }}.adapters.inbound.http.middleware.tracing import TracingMiddleware
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(router.router)
+    app.include_router(auth_router.router)
     app.mount("/metrics", make_asgi_app())
 
     return app
