@@ -96,3 +96,6 @@ class Container:
         if user is None:
             raise InvalidTokenError("token subject no longer exists")
         return user
+
+    def count_users(self, session: Session) -> int:
+        return len(SqlAlchemyUserRepository(session).list_all())

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     access_token_expires_minutes: int = 60
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/{{ package_name }}_dev"
     file_storage_dir: str = "var/files"
+    heartbeat_interval_minutes: int = 60
     sentry_dsn: str = ""
     otel_exporter_otlp_endpoint: str = ""
 

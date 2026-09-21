@@ -20,6 +20,7 @@ dependencies = [
     "argon2-cffi>=23.1",
     "pyjwt>=2.8",
     "python-multipart>=0.0.9",
+    "apscheduler>=3.10",
 ]
 
 [dependency-groups]
@@ -49,6 +50,11 @@ select = ["E", "F", "I", "UP"]
 
 [tool.mypy]
 strict = true
+
+[[tool.mypy.overrides]]
+# apscheduler ships no type stubs / py.typed marker as of 3.x.
+module = "apscheduler.*"
+ignore_missing_imports = true
 
 [tool.importlinter]
 root_packages = ["{{ package_name }}"]
