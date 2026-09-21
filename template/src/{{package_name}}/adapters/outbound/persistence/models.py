@@ -1,6 +1,7 @@
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Column, ForeignKey, String, Table
+from sqlalchemy import JSON, Column, ForeignKey, String, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from {{ package_name }}.domain.model.role import Role
@@ -60,3 +61,12 @@ class UserModel(Base):
             password_hash=self.password_hash,
             roles=[role.to_domain() for role in self.roles],
         )
+
+
+class AuditLogModel(Base):
+    __tablename__ = "audit_log"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    event_name: Mapped[str] = mapped_column(String(100), index=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON)
+    occurred_at: Mapped[datetime] = mapped_column(index=True)

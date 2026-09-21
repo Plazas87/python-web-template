@@ -6,10 +6,14 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from {{ package_name }}.adapters.outbound.events.in_process_event_dispatcher import (
+    InProcessEventDispatcher,
+)
 from {{ package_name }}.adapters.outbound.external.console_email import ConsoleEmailService
 from {{ package_name }}.adapters.outbound.external.local_disk_file_storage import (
     LocalDiskFileStorageService,
 )
+from {{ package_name }}.adapters.outbound.persistence.audit_log_consumer import AuditLogConsumer
 from {{ package_name }}.adapters.outbound.persistence.repositories import (
     SqlAlchemyRoleRepository,
     SqlAlchemyUserRepository,
@@ -24,6 +28,7 @@ from {{ package_name }}.application.use_cases.list_users import ListUsersUseCase
 from {{ package_name }}.application.use_cases.login import LoginUseCase
 from {{ package_name }}.application.use_cases.register_user import RegisterUserUseCase
 from {{ package_name }}.config import Settings
+from {{ package_name }}.domain.events import UserCreated
 from {{ package_name }}.domain.model.user import User
 from {{ package_name }}.domain.ports.services import InvalidTokenError
 
@@ -70,7 +75,11 @@ class Container:
 
     def create_user_use_case(self, session: Session) -> CreateUserUseCase:
         repo = SqlAlchemyUserRepository(session)
-        return CreateUserUseCase(repo=repo, email_svc=self.email_service)
+        return CreateUserUseCase(
+            repo=repo,
+            email_svc=self.email_service,
+            dispatcher=self._event_dispatcher(session),
+        )
 
     def register_user_use_case(self, session: Session) -> RegisterUserUseCase:
         return RegisterUserUseCase(
@@ -78,7 +87,16 @@ class Container:
             role_repo=SqlAlchemyRoleRepository(session),
             hasher=self.password_hasher,
             email_svc=self.email_service,
+            dispatcher=self._event_dispatcher(session),
         )
+
+    def _event_dispatcher(self, session: Session) -> InProcessEventDispatcher:
+        # Built per-request (per session) rather than once at startup: its
+        # subscriber, AuditLogConsumer, must write in the same session/transaction
+        # as the use case that dispatches the event.
+        dispatcher = InProcessEventDispatcher()
+        dispatcher.subscribe(UserCreated, AuditLogConsumer(session))
+        return dispatcher
 
     def login_use_case(self, session: Session) -> LoginUseCase:
         return LoginUseCase(
