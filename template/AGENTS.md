@@ -39,6 +39,7 @@ ABC; the application layer imports only the ABC.
 - **New authorization rule** ("can this actor do this?") → a check inside the relevant use case via the `Policy` port (`domain/ports/policy.py`), never only as a FastAPI dependency. See "Authentication vs. authorization" below.
 - **Something that runs outside the request/response cycle** (on a schedule, or some time after X) → a job function in `adapters/inbound/scheduler/jobs.py`, registered with the `AsyncIOScheduler` in `main.py`'s `lifespan`. See "Background jobs" below.
 - **A new domain event, or something that should react to one** → define the event in `domain/events.py` (past tense, frozen dataclass), `dispatch()` it from the use case via the `EventDispatcher` port right after the state change it describes, and add a subscriber in `container.py`'s `_event_dispatcher`. See "Domain events" below.
+- **A new "list X" endpoint** → `domain/model/pagination.py`'s `PageRequest`/`Page` on the repository port (a `list_page(page_request) -> Page[T]` method), not a bespoke offset/limit convention per entity. See `UserRepository.list_page` and `GET /users` for the pattern.
 
 ## Authentication vs. authorization
 

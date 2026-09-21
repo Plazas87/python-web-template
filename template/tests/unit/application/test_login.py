@@ -3,6 +3,7 @@ from uuid import UUID
 import pytest
 
 from {{ package_name }}.application.use_cases.login import LoginUseCase
+from {{ package_name }}.domain.model.pagination import Page, PageRequest
 from {{ package_name }}.domain.model.user import InvalidCredentialsError, User
 from {{ package_name }}.domain.ports.repositories import UserRepository
 from {{ package_name }}.domain.ports.services import PasswordHasher, TokenService
@@ -21,8 +22,18 @@ class FakeUserRepository(UserRepository):
     def find_by_email(self, email: str) -> User | None:
         return next((u for u in self.users if u.email == email), None)
 
-    def list_all(self) -> list[User]:
-        return list(self.users)
+    def list_page(self, page_request: PageRequest) -> Page[User]:
+        end = page_request.offset + page_request.page_size
+        items = self.users[page_request.offset : end]
+        return Page(
+            items=items,
+            page=page_request.page,
+            page_size=page_request.page_size,
+            total=len(self.users),
+        )
+
+    def count(self) -> int:
+        return len(self.users)
 
 
 class FakePasswordHasher(PasswordHasher):

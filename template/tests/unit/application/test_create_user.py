@@ -5,6 +5,7 @@ from {{ package_name }}.adapters.outbound.events.in_process_event_dispatcher imp
 )
 from {{ package_name }}.application.use_cases.create_user import CreateUserUseCase
 from {{ package_name }}.domain.events import UserCreated
+from {{ package_name }}.domain.model.pagination import Page, PageRequest
 from {{ package_name }}.domain.model.user import User
 from {{ package_name }}.domain.ports.repositories import UserRepository
 from {{ package_name }}.domain.ports.services import EmailService
@@ -23,8 +24,18 @@ class FakeUserRepository(UserRepository):
     def find_by_email(self, email: str) -> User | None:
         return next((u for u in self.saved if u.email == email), None)
 
-    def list_all(self) -> list[User]:
-        return list(self.saved)
+    def list_page(self, page_request: PageRequest) -> Page[User]:
+        end = page_request.offset + page_request.page_size
+        items = self.saved[page_request.offset : end]
+        return Page(
+            items=items,
+            page=page_request.page,
+            page_size=page_request.page_size,
+            total=len(self.saved),
+        )
+
+    def count(self) -> int:
+        return len(self.saved)
 
 
 class FakeEmailService(EmailService):

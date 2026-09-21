@@ -116,4 +116,4 @@ class Container:
         return user
 
     def count_users(self, session: Session) -> int:
-        return len(SqlAlchemyUserRepository(session).list_all())
+        return SqlAlchemyUserRepository(session).count()

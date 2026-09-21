@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+from {{ package_name }}.domain.model.pagination import Page, PageRequest
 from {{ package_name }}.domain.model.role import Role
 from {{ package_name }}.domain.model.user import User
 
@@ -16,7 +17,10 @@ class UserRepository(ABC):
     def find_by_email(self, email: str) -> User | None: ...
 
     @abstractmethod
-    def list_all(self) -> list[User]: ...
+    def list_page(self, page_request: PageRequest) -> Page[User]: ...
+
+    @abstractmethod
+    def count(self) -> int: ...
 
 
 class RoleRepository(ABC):
