@@ -22,6 +22,9 @@ class FakeUserRepository(UserRepository):
     def find_by_email(self, email: str) -> User | None:
         return next((u for u in self.saved if u.email == email), None)
 
+    def list_all(self) -> list[User]:
+        return list(self.saved)
+
 
 class FakeRoleRepository(RoleRepository):
     def __init__(self) -> None:

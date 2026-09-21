@@ -36,6 +36,20 @@ ABC; the application layer imports only the ABC.
 - **New HTTP endpoint** → `adapters/inbound/http/router.py` (or a new router module), calling an existing or new use case in `application/use_cases/`.
 - **New database table** → `adapters/outbound/persistence/models.py` (SQLAlchemy model) + an Alembic migration. Never let the SQLAlchemy model leak into `domain/model/`.
 - **New third-party integration** (email, payments, etc.) → define the port in `domain/ports/services.py` if one doesn't exist, implement it in `adapters/outbound/external/`, wire it in `container.py`.
+- **New authorization rule** ("can this actor do this?") → a check inside the relevant use case via the `Policy` port (`domain/ports/policy.py`), never only as a FastAPI dependency. See "Authentication vs. authorization" below.
+
+## Authentication vs. authorization
+
+These are different concerns, enforced in different layers:
+
+- **Authentication** ("is there a valid session at all?") is an HTTP-layer guard:
+  `get_current_user` (`adapters/inbound/http/dependencies.py`) decodes the bearer token and
+  loads the actor, or 401s. It has no opinion on what that actor may do.
+- **Authorization** ("is *this* actor allowed to do *this*?") is a business rule and belongs
+  *inside* the use case, via `Policy.can(actor, action, resource)` (`domain/ports/policy.py`,
+  implemented by `RoleBasedPolicy`) — see `ListUsersUseCase` for the pattern. A rule enforced
+  only as a route dependency can be silently bypassed by any non-HTTP caller (a background
+  job, a script, another adapter); a rule enforced inside the use case can't be.
 
 ## Naming conventions
 
@@ -43,6 +57,7 @@ ABC; the application layer imports only the ABC.
 |---|---|---|
 | Port | `<Noun>Repository` / `<Noun>Service` (ABC, no `I` prefix) | `UserRepository` |
 | Adapter | `<Technology><Port>` | `SqlAlchemyUserRepository` |
+| Policy adapter | `<Strategy>Policy` | `RoleBasedPolicy` |
 | Use case | `<Verb><Noun>UseCase` | `CreateUserUseCase` |
 | Domain event | Past tense | `UserCreated` |
 

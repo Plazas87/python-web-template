@@ -14,7 +14,9 @@ from {{ package_name }}.adapters.outbound.security.argon2_password_hasher import
     Argon2PasswordHasher,
 )
 from {{ package_name }}.adapters.outbound.security.jwt_token_service import JwtTokenService
+from {{ package_name }}.adapters.outbound.security.role_based_policy import RoleBasedPolicy
 from {{ package_name }}.application.use_cases.create_user import CreateUserUseCase
+from {{ package_name }}.application.use_cases.list_users import ListUsersUseCase
 from {{ package_name }}.application.use_cases.login import LoginUseCase
 from {{ package_name }}.application.use_cases.register_user import RegisterUserUseCase
 from {{ package_name }}.config import Settings
@@ -30,6 +32,7 @@ class Container:
     email_service: ConsoleEmailService
     password_hasher: Argon2PasswordHasher
     token_service: JwtTokenService
+    policy: RoleBasedPolicy
 
     @classmethod
     def build(cls, settings: Settings) -> "Container":
@@ -42,6 +45,7 @@ class Container:
                 secret_key=settings.secret_key,
                 expires_minutes=settings.access_token_expires_minutes,
             ),
+            policy=RoleBasedPolicy(),
         )
 
     async def new_session(self) -> AsyncIterator[Session]:
@@ -76,6 +80,9 @@ class Container:
             hasher=self.password_hasher,
             tokens=self.token_service,
         )
+
+    def list_users_use_case(self, session: Session) -> ListUsersUseCase:
+        return ListUsersUseCase(repo=SqlAlchemyUserRepository(session), policy=self.policy)
 
     def current_user(self, session: Session, token: str) -> User:
         user_id: UUID = self.token_service.decode_access_token(token)

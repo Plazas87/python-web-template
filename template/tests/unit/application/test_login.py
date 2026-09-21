@@ -21,6 +21,9 @@ class FakeUserRepository(UserRepository):
     def find_by_email(self, email: str) -> User | None:
         return next((u for u in self.users if u.email == email), None)
 
+    def list_all(self) -> list[User]:
+        return list(self.users)
+
 
 class FakePasswordHasher(PasswordHasher):
     def hash(self, password: str) -> str:
