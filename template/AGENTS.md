@@ -37,6 +37,7 @@ ABC; the application layer imports only the ABC.
 - **New database table** → `adapters/outbound/persistence/models.py` (SQLAlchemy model) + an Alembic migration. Never let the SQLAlchemy model leak into `domain/model/`.
 - **New third-party integration** (email, payments, etc.) → define the port in `domain/ports/services.py` if one doesn't exist, implement it in `adapters/outbound/external/`, wire it in `container.py`.
 - **New authorization rule** ("can this actor do this?") → a check inside the relevant use case via the `Policy` port (`domain/ports/policy.py`), never only as a FastAPI dependency. See "Authentication vs. authorization" below.
+- **Something that runs outside the request/response cycle** (on a schedule, or some time after X) → a job function in `adapters/inbound/scheduler/jobs.py`, registered with the `AsyncIOScheduler` in `main.py`'s `lifespan`. See "Background jobs" below.
 
 ## Authentication vs. authorization
 
@@ -50,6 +51,20 @@ These are different concerns, enforced in different layers:
   implemented by `RoleBasedPolicy`) — see `ListUsersUseCase` for the pattern. A rule enforced
   only as a route dependency can be silently bypassed by any non-HTTP caller (a background
   job, a script, another adapter); a rule enforced inside the use case can't be.
+
+## Background jobs
+
+Staged the same way observability is staged (day one → first paying user → stable
+revenue) — apply the same reasoning here instead of reaching for a queue on day one:
+
+- **Default / starting point**: in-process `AsyncIOScheduler` (APScheduler), started and
+  shut down in `main.py`'s `lifespan`. Zero extra infrastructure; fine for a single service
+  at modest scale. See `log_user_count_heartbeat` (`adapters/inbound/scheduler/jobs.py`)
+  for the pattern — a job has no FastAPI request to hang `Depends(get_db_session)` off, so
+  it opens and closes its own session directly from the `Container` it's given, the same
+  way `scripts/seed.py` does.
+- **Graduate to this when the pain shows up**: Celery or RQ + Redis, once there's real
+  queueing/retry/distributed-worker need.
 
 ## Naming conventions
 
