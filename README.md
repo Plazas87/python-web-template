@@ -7,8 +7,16 @@ answer a few prompts, and you get a working app with:
 - **Ports & Adapters (Hexagonal) architecture** — business logic that doesn't know
   FastAPI or SQLAlchemy exist, so you can test it in milliseconds and swap infrastructure
   without rewriting it
-- A working example vertical slice (`POST /users`) wired end to end, so you copy a
-  working pattern instead of starting from an empty folder
+- Working vertical slices wired end to end, so you copy a working pattern instead of
+  starting from an empty folder: registration + JWT login (`POST /auth/register`,
+  `POST /auth/login`, `GET /auth/me`), a role-based authorization example
+  (`GET /users`, admin-only), and a plain CRUD example (`POST /users`)
+- A domain-level `Policy` port for authorization rules that must hold no matter what calls
+  the use case — not just an HTTP route guard a background job or script could bypass
+- A `Page`/`PageRequest` pagination pattern on the repository port, a `FileStorageService`
+  port (local-disk adapter, swappable for S3-compatible storage), an in-process
+  scheduled-jobs story (APScheduler by default, documented upgrade path to Celery/RQ), and
+  a domain-events dispatcher with a working audit-log consumer
 - CI that lints, typechecks, and **enforces the architecture** (a build fails if someone
   imports SQLAlchemy into your domain layer — see [Architecture](#architecture))
 - `/health` + `/ready` endpoints, structured JSON logging with request tracing, and
@@ -49,10 +57,14 @@ uv run uvicorn acme_billing.main:app --reload
 curl http://localhost:8000/health
 # {"status":"ok"}
 
-curl -X POST http://localhost:8000/users \
+curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "jane@example.com", "name": "Jane"}'
-# {"id":"...", "email":"jane@example.com", "name":"Jane"}
+  -d '{"email": "jane@example.com", "name": "Jane", "password": "s3cret123"}'
+# {"id":"...", "email":"jane@example.com", "name":"Jane", "roles":["user"]}
+
+curl -X POST http://localhost:8000/auth/login \
+  -d "username=jane@example.com&password=s3cret123"
+# {"access_token":"...", "token_type":"bearer"}
 ```
 
 ## What you get
@@ -63,8 +75,10 @@ my-new-app/
 │   ├── domain/              # entities, value objects, port interfaces (ABCs) — zero external imports
 │   ├── application/         # use cases — one class per business action
 │   ├── adapters/
-│   │   ├── inbound/http/    # FastAPI routes, middleware, request/response schemas
-│   │   └── outbound/        # SQLAlchemy repositories, external clients, observability
+│   │   ├── inbound/http/       # FastAPI routes, middleware, request/response schemas
+│   │   ├── inbound/scheduler/  # background job functions (in-process APScheduler)
+│   │   └── outbound/           # SQLAlchemy repositories, security (hashing/JWT/policy),
+│   │                           # events, file storage, external clients, observability
 │   ├── container.py         # composition root — wires every port to its adapter, once
 │   ├── config.py            # pydantic-settings, reads .env
 │   └── main.py               # FastAPI app entrypoint
@@ -114,7 +128,10 @@ Say you want `DELETE /users/{id}`. The pattern to follow, in order:
 
 If instead you needed a new *integration* (say, charging a card), the port goes in
 `domain/ports/services.py`, the concrete adapter goes in `adapters/outbound/external/`, and
-it's wired in `container.py`. `AGENTS.md`'s decision tree covers this in more detail.
+it's wired in `container.py`. `AGENTS.md`'s decision tree covers this in more detail, along
+with the same one-new-file shape for: an authorization rule (the `Policy` port), something
+that should run on a schedule (`adapters/inbound/scheduler/jobs.py`), reacting to a domain
+event (`EventDispatcher`), and a new paginated list endpoint (`Page`/`PageRequest`).
 
 ## Testing
 
@@ -161,8 +178,12 @@ markers to resolve by hand, same as any merge.
 | Composition root | A plain `Container` dataclass with a `build()` factory method — no DI framework | One file, ordinary Python, nothing new to learn to read the whole dependency graph |
 | Structured logging | Standard library `logging` + `contextvars` | Zero extra dependencies; integrates natively with FastAPI/SQLAlchemy/Alembic's own logging, which already goes through `logging` |
 | Config | `pydantic-settings` reading `.env` | Typed, validated settings instead of raw `os.environ` calls |
+| Password hashing | `argon2-cffi`, used directly | `passlib` (the more commonly reached-for choice) is unmaintained — no release since 2020, already breaking under current `bcrypt`/Python |
+| Access tokens | `PyJWT` | FastAPI's own docs moved their tutorial to PyJWT in Aug 2026; the alternative, `python-jose`, carries an unpatched vulnerability in its `ecdsa` dependency |
+| Authorization | A domain-level `Policy` port, checked *inside* the use case, not only an HTTP dependency | An HTTP-only guard can be bypassed by any non-HTTP caller — a background job, a script, another adapter |
+| Background jobs | In-process `AsyncIOScheduler` (APScheduler) by default | Zero extra infrastructure; graduate to Celery/RQ + Redis only once there's real queueing/retry/distributed-worker need |
 | Deploy target | Railway, CLI-driven, tag-triggered | Keeps the deploy trigger as auditable code in `release.yml` rather than hidden dashboard config |
-| CQRS, event sourcing, a shared kernel | Not included | These solve problems at a scale most new services haven't hit yet — add them when the pain shows up, not before |
+| CQRS, event sourcing, a shared kernel | Not included (a simple in-process domain-event dispatcher is — see `domain/events.py`) | Full CQRS/event sourcing solve problems at a scale most new services haven't hit yet — add them when the pain shows up, not before |
 
 If a choice above doesn't fit your project, it's meant to be changed — swap the logging
 module, drop in a different deploy target, add CQRS later. Nothing in `domain/` or

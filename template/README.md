@@ -9,6 +9,17 @@ Ports & Adapters (Hexagonal). Dependencies point inward only: `adapters/` depend
 depends on nothing outside itself. See `AGENTS.md` for the full rules — it's the document
 AI coding agents (and humans) should read before adding code.
 
+## What's included
+
+Working vertical slices to copy the pattern from, not an empty skeleton:
+
+- **Auth**: `POST /auth/register`, `POST /auth/login` (JWT), `GET /auth/me`
+- **Authorization**: `GET /users` (admin-only), gated by a domain-level `Policy` port —
+  see "Authentication vs. authorization" in `AGENTS.md`
+- **Pagination**: `GET /users?page=&page_size=` — see `domain/model/pagination.py`
+- **File storage**, **background jobs** (in-process scheduler), and **domain events** (with
+  a working audit-log consumer) — each documented in its own `AGENTS.md` section
+
 ## Getting started
 
 ```bash
@@ -28,7 +39,7 @@ uv run uvicorn {{ package_name }}.main:app --reload
 | `make architecture` | import-linter — fails the build on a dependency-rule violation |
 | `make test` | Unit tests (`tests/unit`, no I/O) |
 | `make test-integration` | Integration tests against a real DB |
-| `make seed` | Insert demo data |
+| `make seed` | Insert demo data, incl. a working admin login for local dev |
 | `make deploy-staging` / `make deploy-prod` | Deploy to Railway |
 
 ## Deployment
